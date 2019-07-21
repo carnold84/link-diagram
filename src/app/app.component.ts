@@ -7,6 +7,17 @@ import { Component, OnInit } from "@angular/core";
 })
 export class AppComponent implements OnInit {
   data;
+  styles = {
+    bgColor: "#04182A",
+    link: {
+      bgColor: "",
+      lineColor: "#133C5C"
+    },
+    node: {
+      bgColor: "#4B9FCC",
+      lineColor: "#4B9FCC"
+    }
+  };
 
   ngOnInit() {
     const numNodes = 100;
