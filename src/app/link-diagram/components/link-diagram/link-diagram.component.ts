@@ -273,4 +273,33 @@ export class LinkDiagramComponent implements AfterViewInit {
     requestAnimationFrame(this.render);
     this.renderer.render(this.scene, this.camera);
   };
+
+  private onDocumentMouseDown = event => {
+    console.log("onDocumentMouseDown", event);
+    event.preventDefault();
+
+    let mouse = new THREE.Vector2();
+    mouse.x = (event.clientX / this.width) * 2 - 1;
+    mouse.y = -(event.clientY / this.height) * 2 + 1;
+
+    const raycaster = new THREE.Raycaster();
+    let INTERSECTED = undefined;
+
+    raycaster.setFromCamera(mouse, this.camera);
+    var intersects = raycaster.intersectObjects(this.scene.children);
+    console.log(intersects);
+    if (intersects.length > 0) {
+      if (INTERSECTED != intersects[0].object) {
+        if (INTERSECTED)
+          INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+        INTERSECTED = intersects[0].object;
+        INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+        INTERSECTED.material.emissive.setHex(0xff0000);
+      }
+    } else {
+      if (INTERSECTED)
+        INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+      INTERSECTED = null;
+    }
+  };
 }
