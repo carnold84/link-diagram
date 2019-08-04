@@ -2,4 +2,12 @@ canvas {
   position: absolute;
   height: 100%;
   width: 100%;
+  z-index: 1;
+}
+
+.controls {
+  right: 20px;
+  position: absolute;
+  top: 20px;
+  z-index: 2;
 }

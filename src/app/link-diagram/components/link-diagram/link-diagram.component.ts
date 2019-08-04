@@ -5,8 +5,11 @@ import {
   AfterViewInit,
   Input
 } from "@angular/core";
-import * as THREE from "three";
 import * as d3 from "d3";
+import * as TWEEN from "@tweenjs/tween.js";
+import * as THREE from "three";
+
+import { createLink, createNode } from "./utils/elements";
 
 @Component({
   selector: "app-link-diagram",
@@ -32,13 +35,17 @@ export class LinkDiagramComponent implements AfterViewInit {
 
   private camera: THREE.PerspectiveCamera;
   private height: number;
+  private initialPosition;
+  public isLoading: boolean = true;
   private links: Array<any> = [];
   private nodes: Array<any> = [];
+  private positionTween: TWEEN.tween;
   private renderer: THREE.WebGLRenderer;
   private simulation: any;
   private scene: THREE.Scene;
   private view: any;
   private width: number;
+  private zoom;
 
   ngAfterViewInit() {
     this.init();
@@ -60,129 +67,38 @@ export class LinkDiagramComponent implements AfterViewInit {
     this.camera = new THREE.PerspectiveCamera();
 
     this.camera.position.set(0, 0, 400);
-    this.camera.lookAt(0, 0, 0);
+    this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    // store initial camera position so we can zoom back to start
+    this.initialPosition = {
+      x: this.camera.position.x,
+      y: this.camera.position.y,
+      z: this.camera.position.z
+    };
 
     const light = new THREE.PointLight(0xffffff, 1, 1000);
     light.position.set(0, 0, 100);
     this.scene.add(light);
 
+    console.log(this.camera.position);
+
     const loader = new THREE.FontLoader();
 
     loader.load("assets/helvetiker_regular.typeface.json", font => {
       this.data.links.forEach(element => {
-        const link = this.createLink(element);
+        const link = createLink(element, this.styles);
         this.scene.add(link);
         this.links.push(link);
       });
 
       this.data.nodes.forEach(element => {
-        const node = this.createNode(element, font);
+        const node = createNode(element, font, this.styles);
         this.scene.add(node);
         this.nodes.push(node);
       });
+
+      this.isLoading = false;
     });
-  };
-
-  private startSimulation = () => {
-    const { links, nodes } = this.data;
-
-    this.simulation = d3
-      .forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id((d: any) => d.id))
-      .force("charge", d3.forceManyBody())
-      .force("x", d3.forceX())
-      .force("y", d3.forceY());
-
-    this.simulation.on("tick", this.update);
-  };
-
-  private update = () => {
-    this.links.forEach((link, i) => {
-      const linkData = this.data.links[i];
-
-      const sourceVertice = link.geometry.vertices[0];
-      sourceVertice.x = linkData.source.x;
-      sourceVertice.y = linkData.source.y;
-
-      const targetVertice = link.geometry.vertices[1];
-      targetVertice.x = linkData.target.x;
-      targetVertice.y = linkData.target.y;
-
-      link.geometry.verticesNeedUpdate = true;
-    });
-
-    this.nodes.forEach((node, i) => {
-      const nodeData = this.data.nodes[i];
-
-      node.position.x = nodeData.x;
-      node.position.y = nodeData.y;
-    });
-  };
-
-  private createLink = data => {
-    const geometry = new THREE.Geometry();
-    const material = new THREE.LineBasicMaterial({
-      color: new THREE.Color(this.styles.link.lineColor)
-    });
-    geometry.vertices.push(new THREE.Vector3(data.source.x, data.source.y, 0));
-    geometry.vertices.push(new THREE.Vector3(data.target.x, data.target.y, 0));
-    const line = new THREE.Line(geometry, material);
-
-    return line;
-  };
-
-  private createNode = (data, font) => {
-    const geometry = new THREE.SphereGeometry(1, 32, 32);
-    const material = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(this.styles.node.bgColor)
-    });
-    const sphere = new THREE.Mesh(geometry, material);
-    sphere.position.x = 0;
-    sphere.position.y = 0;
-
-    const textGeometry = new THREE.TextGeometry(data.name, {
-      font: font,
-      size: 1,
-      height: 0,
-      curveSegments: 12
-    });
-    const text = new THREE.Mesh(textGeometry, material);
-    text.position.x = 2;
-    text.position.y = -0.5;
-
-    const innerSphere = this.createSphere({
-      color: this.styles.node.bgColor,
-      opacity: 1,
-      diameter: 1
-    });
-    const outerSphere = this.createSphere({
-      color: this.styles.node.lineColor,
-      opacity: 0.25,
-      diameter: 1.25
-    });
-
-    let node = new THREE.Group();
-    node.add(innerSphere);
-    node.add(outerSphere);
-    node.add(text);
-    node.position.x = data.x;
-    node.position.y = data.y;
-
-    return node;
-  };
-
-  private createSphere = ({ color, opacity, diameter }) => {
-    const geometry = new THREE.SphereGeometry(diameter, 32, 32);
-    const material = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(color),
-      opacity,
-      transparent: true
-    });
-    const sphere = new THREE.Mesh(geometry, material);
-    sphere.position.x = 0;
-    sphere.position.y = 0;
-
-    return sphere;
   };
 
   private startRendering = () => {
@@ -197,7 +113,7 @@ export class LinkDiagramComponent implements AfterViewInit {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.autoClear = true;
 
-    const zoom = d3
+    this.zoom = d3
       .zoom()
       .wheelDelta(function wheelDelta() {
         // make it zoom in on scroll up
@@ -250,16 +166,78 @@ export class LinkDiagramComponent implements AfterViewInit {
 
     // Add zoom listener
     this.view = d3.select(this.renderer.domElement);
-    this.view.call(zoom);
+    this.view.call(this.zoom);
 
     // Disable double click to zoom because I'm not handling it in Three.js
     this.view.on("dblclick.zoom", null);
 
     // Sync d3 zoom with camera z position
-    zoom.scaleTo(this.view, 10000);
+    this.zoom.scaleTo(this.view, 10000);
 
     // start rendering
     requestAnimationFrame(this.render);
+  };
+
+  private startSimulation = () => {
+    const { links, nodes } = this.data;
+
+    this.simulation = d3
+      .forceSimulation(nodes)
+      .force("link", d3.forceLink(links).id((d: any) => d.id))
+      .force("charge", d3.forceManyBody())
+      .force("x", d3.forceX())
+      .force("y", d3.forceY());
+
+    this.simulation.on("tick", this.updateElements);
+  };
+
+  private updateElements = () => {
+    this.links.forEach((link, i) => {
+      const linkData = this.data.links[i];
+
+      const sourceVertice = link.geometry.vertices[0];
+      sourceVertice.x = linkData.source.x;
+      sourceVertice.y = linkData.source.y;
+
+      const targetVertice = link.geometry.vertices[1];
+      targetVertice.x = linkData.target.x;
+      targetVertice.y = linkData.target.y;
+
+      link.geometry.verticesNeedUpdate = true;
+    });
+
+    this.nodes.forEach((node, i) => {
+      const nodeData = this.data.nodes[i];
+
+      node.position.x = nodeData.x;
+      node.position.y = nodeData.y;
+    });
+  };
+
+  public onZoomToFit = () => {
+    let from = {
+      x: this.camera.position.x,
+      y: this.camera.position.y,
+      z: this.camera.position.z
+    };
+    const to = {
+      x: this.initialPosition.x,
+      y: this.initialPosition.y,
+      z: this.initialPosition.z
+    };
+    this.positionTween = new TWEEN.Tween(from).to(to, 300);
+
+    this.positionTween
+      .easing(TWEEN.Easing.Quadratic.InOut)
+      .onUpdate(() => {
+        this.camera.position.set(from.x, from.y, from.z);
+      })
+      .onComplete(() => {
+        // re-sync d3 zoom with camera z position
+        this.zoom.scaleTo(this.view, 10000);
+      });
+
+    this.positionTween.start();
   };
 
   private getCurrentScale = () => {
@@ -270,8 +248,9 @@ export class LinkDiagramComponent implements AfterViewInit {
   };
 
   private render = () => {
-    requestAnimationFrame(this.render);
+    TWEEN.update();
     this.renderer.render(this.scene, this.camera);
+    requestAnimationFrame(this.render);
   };
 
   private onDocumentMouseDown = event => {
