@@ -119,7 +119,7 @@ export class LinkDiagramComponent implements AfterViewInit {
         // make it zoom in on scroll up
         return (d3.event.deltaY * (d3.event.deltaMode ? 120 : 1)) / 500;
       })
-      .scaleExtent([100, 400])
+      .scaleExtent([100, 350])
       .on("zoom", () => {
         const event = d3.event;
 
