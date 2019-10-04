@@ -3,34 +3,35 @@ import {
   ViewChild,
   ElementRef,
   AfterViewInit,
-  Input
-} from "@angular/core";
-import * as d3 from "d3";
-import * as TWEEN from "@tweenjs/tween.js";
-import * as THREE from "three";
+  Input,
+} from '@angular/core';
+import * as d3 from 'd3';
+import * as TWEEN from '@tweenjs/tween.js';
+import * as THREE from 'three';
+import { Interaction } from 'three.interaction';
 
-import { createLink, createNode } from "./utils/elements";
+import { createLink, createNode } from './utils/elements';
 
 @Component({
-  selector: "app-link-diagram",
-  templateUrl: "./link-diagram.component.html",
-  styleUrls: ["./link-diagram.component.scss"]
+  selector: 'app-link-diagram',
+  templateUrl: './link-diagram.component.html',
+  styleUrls: ['./link-diagram.component.scss'],
 })
 export class LinkDiagramComponent implements AfterViewInit {
   @Input() data;
   @Input() styles = {
-    bgColor: "#ffffff",
+    bgColor: '#ffffff',
     link: {
-      bgColor: "",
-      lineColor: "#eeeeee"
+      bgColor: '',
+      lineColor: '#eeeeee',
     },
     node: {
-      bgColor: "#cccccc",
-      lineColor: ""
-    }
+      bgColor: '#cccccc',
+      lineColor: '',
+    },
   };
 
-  @ViewChild("canvas", undefined)
+  @ViewChild('canvas', undefined)
   private canvasRef: ElementRef;
 
   private camera: THREE.PerspectiveCamera;
@@ -69,22 +70,27 @@ export class LinkDiagramComponent implements AfterViewInit {
     this.camera.position.set(0, 0, 400);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+      antialias: true,
+    });
+
+    const interaction = new Interaction(this.renderer, this.scene, this.camera);
+
     // store initial camera position so we can zoom back to start
     this.initialPosition = {
       x: this.camera.position.x,
       y: this.camera.position.y,
-      z: this.camera.position.z
+      z: this.camera.position.z,
     };
 
     const light = new THREE.PointLight(0xffffff, 1, 1000);
     light.position.set(0, 0, 100);
     this.scene.add(light);
 
-    console.log(this.camera.position);
-
     const loader = new THREE.FontLoader();
 
-    loader.load("assets/helvetiker_regular.typeface.json", font => {
+    loader.load('assets/helvetiker_regular.typeface.json', font => {
       this.data.links.forEach(element => {
         const link = createLink(element, this.styles);
         this.scene.add(link);
@@ -94,6 +100,8 @@ export class LinkDiagramComponent implements AfterViewInit {
       this.data.nodes.forEach(element => {
         const node = createNode(element, font, this.styles);
         this.scene.add(node);
+        /* node.cursor = "pointer";
+        node.on("click", this.onNodeClick); */
         this.nodes.push(node);
       });
 
@@ -101,11 +109,11 @@ export class LinkDiagramComponent implements AfterViewInit {
     });
   };
 
+  private onNodeClick = evt => {
+    console.log(evt);
+  };
+
   private startRendering = () => {
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-      antialias: true
-    });
     this.renderer.setPixelRatio(devicePixelRatio);
     this.renderer.setSize(this.width, this.height);
 
@@ -120,7 +128,7 @@ export class LinkDiagramComponent implements AfterViewInit {
         return (d3.event.deltaY * (d3.event.deltaMode ? 120 : 1)) / 500;
       })
       .scaleExtent([100, 350])
-      .on("zoom", () => {
+      .on('zoom', () => {
         const event = d3.event;
 
         if (event.sourceEvent) {
@@ -138,7 +146,7 @@ export class LinkDiagramComponent implements AfterViewInit {
             const vector = new THREE.Vector3(
               (clientX / this.width) * 2 - 1,
               -(clientY / this.height) * 2 + 1,
-              1
+              1,
             );
             vector.unproject(this.camera);
             const dir = vector.sub(this.camera.position).normalize();
@@ -158,7 +166,7 @@ export class LinkDiagramComponent implements AfterViewInit {
             this.camera.position.set(
               this.camera.position.x - movementX / current_scale,
               this.camera.position.y + movementY / current_scale,
-              this.camera.position.z
+              this.camera.position.z,
             );
           }
         }
@@ -169,7 +177,7 @@ export class LinkDiagramComponent implements AfterViewInit {
     this.view.call(this.zoom);
 
     // Disable double click to zoom because I'm not handling it in Three.js
-    this.view.on("dblclick.zoom", null);
+    this.view.on('dblclick.zoom', null);
 
     // Sync d3 zoom with camera z position
     this.zoom.scaleTo(this.view, 10000);
@@ -183,12 +191,12 @@ export class LinkDiagramComponent implements AfterViewInit {
 
     this.simulation = d3
       .forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id((d: any) => d.id))
-      .force("charge", d3.forceManyBody())
-      .force("x", d3.forceX())
-      .force("y", d3.forceY());
+      .force('link', d3.forceLink(links).id((d: any) => d.id))
+      .force('charge', d3.forceManyBody())
+      .force('x', d3.forceX())
+      .force('y', d3.forceY());
 
-    this.simulation.on("tick", this.updateElements);
+    this.simulation.on('tick', this.updateElements);
   };
 
   private updateElements = () => {
@@ -218,12 +226,12 @@ export class LinkDiagramComponent implements AfterViewInit {
     let from = {
       x: this.camera.position.x,
       y: this.camera.position.y,
-      z: this.camera.position.z
+      z: this.camera.position.z,
     };
     const to = {
       x: this.initialPosition.x,
       y: this.initialPosition.y,
-      z: this.initialPosition.z
+      z: this.initialPosition.z,
     };
     this.positionTween = new TWEEN.Tween(from).to(to, 300);
 
@@ -251,34 +259,5 @@ export class LinkDiagramComponent implements AfterViewInit {
     TWEEN.update();
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.render);
-  };
-
-  private onDocumentMouseDown = event => {
-    console.log("onDocumentMouseDown", event);
-    event.preventDefault();
-
-    let mouse = new THREE.Vector2();
-    mouse.x = (event.clientX / this.width) * 2 - 1;
-    mouse.y = -(event.clientY / this.height) * 2 + 1;
-
-    const raycaster = new THREE.Raycaster();
-    let INTERSECTED = undefined;
-
-    raycaster.setFromCamera(mouse, this.camera);
-    var intersects = raycaster.intersectObjects(this.scene.children);
-    console.log(intersects);
-    if (intersects.length > 0) {
-      if (INTERSECTED != intersects[0].object) {
-        if (INTERSECTED)
-          INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
-        INTERSECTED = intersects[0].object;
-        INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
-        INTERSECTED.material.emissive.setHex(0xff0000);
-      }
-    } else {
-      if (INTERSECTED)
-        INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
-      INTERSECTED = null;
-    }
   };
 }

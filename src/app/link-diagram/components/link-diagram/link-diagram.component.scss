@@ -25,7 +25,7 @@ canvas {
 }
 
 .controls {
-  background-color: rgba(179, 198, 210, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
   padding: 20px;
   position: absolute;
   right: 20px;
@@ -39,30 +39,49 @@ canvas {
   }
 
   .top-left {
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     left: 0;
     top: 0;
   }
 
   .top-right {
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     right: 0;
     top: 0;
   }
 
   .bottom-left {
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     bottom: 0;
     left: 0;
   }
 
   .bottom-right {
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     bottom: 0;
     right: 0;
+  }
+}
+
+.btn {
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 8px 15px;
+
+  &:hover {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  &:focus {
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    color: rgba(255, 255, 255, 1);
+    outline: none;
   }
 }

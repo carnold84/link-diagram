@@ -3,11 +3,15 @@
 </div>
 
 <div *ngIf="!isLoading" class="controls">
-  <button (click)="onZoomToFit()">Zoom To Fit</button>
+  <button (click)="onZoomToFit()" class="btn">Zoom To Fit</button>
   <div class="corner top-left"></div>
   <div class="corner top-right"></div>
   <div class="corner bottom-left"></div>
   <div class="corner bottom-right"></div>
+</div>
+
+<div *ngIf="!isLoading" class="info">
+  <p>{{ data }}</p>
 </div>
 
 <canvas #canvas></canvas>
